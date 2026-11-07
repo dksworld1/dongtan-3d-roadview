@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>동탄2 C14 | 3D 로드뷰</title><style>
+*{box-sizing:border-box}body{margin:0;background:#101b25;color:white;font-family:system-ui,-apple-system,sans-serif;overflow:hidden}canvas{display:block;touch-action:none}
+#hud{position:absolute;left:12px;top:12px;background:#10212ddd;backdrop-filter:blur(12px);border:1px solid #ffffff28;border-radius:14px;padding:13px;max-width:285px;pointer-events:none}h1{font-size:16px;margin:0 0 5px}small{font-size:11px;color:#c3d6e4;line-height:1.5;display:block}
+#controls{position:absolute;bottom:18px;left:12px;right:12px;display:flex;gap:7px;flex-wrap:wrap;justify-content:center}button{border:1px solid #ffffff4a;background:#142b3de9;color:#fff;padding:11px 13px;border-radius:12px;font-weight:650;cursor:pointer;touch-action:manipulation}button.active{background:#147aa0}#hint{position:absolute;top:14px;right:12px;font-size:11px;background:#10212dcc;padding:9px;border-radius:9px;text-align:right;pointer-events:none}
+#joy{position:absolute;left:24px;bottom:100px;width:104px;height:104px;border-radius:50%;border:2px solid #ffffff60;background:#142d3d55;display:none;touch-action:none}#knob{position:absolute;left:35px;top:35px;width:32px;height:32px;border-radius:50%;background:#b8edffb8}#cross{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:22px;pointer-events:none;display:none}
+@media(max-width:700px){#joy{display:block}#hud{max-width:230px}#hint{top:112px}button{padding:10px;font-size:12px}}
+</style></head><body><div id="hud"><h1>동탄2 C14 · 3D 로드뷰</h1><small>101·102·103·201동 / 약 40층 추정 모델<br>배치도 참고 재구성 · 실제 설계와 다를 수 있습니다</small></div><div id="hint">드래그: 시점 회전<br>휠·두 손가락: 확대<br>WASD / 방향키: 이동</div><div id="joy"><div id="knob"></div></div><div id="cross">+</div><div id="controls"><button id="aerial" class="active">항공뷰</button><button id="walk">로드뷰</button><button id="tour">자동 투어</button><button id="reset">초기화</button><button id="labels" class="active">동 표시</button></div>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js';
+const scene=new THREE.Scene();scene.background=new THREE.Color(0xb6d4e3);scene.fog=new THREE.FogExp2(0xb6d4e3,.0018);
+const camera=new THREE.PerspectiveCamera(65,innerWidth/innerHeight,.1,2000);
+const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.8));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;document.body.prepend(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xe9f7ff,0x53684c,2.0));const sun=new THREE.DirectionalLight(0xfff4d8,2.3);sun.position.set(-160,280,120);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-300;sun.shadow.camera.right=300;sun.shadow.camera.top=300;sun.shadow.camera.bottom=-300;scene.add(sun);
+const mat=(c,roughness=1)=>new THREE.MeshStandardMaterial({color:c,roughness});
+const grass=mat(0x648b50),road=mat(0x343d43),path=mat(0xb5b2a4),white=mat(0xe7e6d8),yellow=mat(0xf4c65e),roof=mat(0x727b82),water=mat(0x67b9cc,.28),play=mat(0xe5c78e);
+function box(x,y,z,w,h,d,m){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);o.receiveShadow=true;o.castShadow=h>2;scene.add(o);return o}
+function disk(x,z,r,m){const o=new THREE.Mesh(new THREE.CylinderGeometry(r,r,.12,16),m);o.position.set(x,.22,z);scene.add(o);return o}
+function line(points,color,width=1){const m=mat(color);for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i],dx=b[0]-a[0],dz=b[1]-a[1],len=Math.hypot(dx,dz);const o=box((a[0]+b[0])/2,.24,(a[1]+b[1])/2,width,.06,len,m);o.rotation.y=Math.atan2(dx,dz)}}
+box(0,-.65,0,900,1,900,mat(0x506e4c));box(0,-.08,0,340,.18,220,grass);
+for(const z of [-123,123]){box(0,.02,z,500,.16,29,road);for(let x=-245;x<245;x+=17)box(x,.15,z,8,.035,.35,white);box(0,.14,z+(z<0?10:-10),500,.035,.22,yellow)}
+for(const x of [-189,189]){box(x,.02,0,30,.16,350,road);for(let z=-168;z<168;z+=17)box(x,.15,z, .35,.035,8,white)}
+// Internal north-south pedestrian axis and access lanes
+box(0,.12,0,13,.18,216,path);box(0,.22,0,2,.1,215,white);
+line([[-157,-100],[-130,-55],[-88,-8],[-52,40],[-22,74]],0xc9c7bb,7);
+line([[151,-90],[124,-47],[99,8],[145,55]],0xc9c7bb,7);
+line([[-140,91],[-100,62],[-68,28],[-25,-6]],0xc9c7bb,5);
+function tree(x,z,r=3){box(x,2,z,.7,4,.7,mat(0x73583c));const o=new THREE.Mesh(new THREE.IcosahedronGeometry(r,1),mat([0x3e753e,0x5d9044,0x4d7d48][Math.floor(Math.random()*3)]));o.position.set(x,5.6,z);o.castShadow=true;scene.add(o)}
+for(let x=-171;x<=171;x+=13){tree(x,-108,2.3);tree(x,108,2.4)}
+for(let z=-98;z<=98;z+=13){tree(-172,z,2.3);tree(172,z,2.4)}
+// Reproducible planted landscape
+let seed=19;function rnd(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296}
+for(let i=0;i<240;i++){let x=(rnd()-.5)*320,z=(rnd()-.5)*190;if(Math.abs(x)<13|| (x>43&&z<0&&z>-85) ||(x< -38&&z>12&&z<83))continue;tree(x,z,1.4+rnd()*1.7)}
+function tower(name,x,z,angle,w=24,d=58,floors=40,tint=0xe6e2d9){const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=angle;scene.add(g);const h=floors*3.05;const body=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(tint,.7));body.position.y=h/2+1.5;body.castShadow=true;body.receiveShadow=true;g.add(body);
+const cap=new THREE.Mesh(new THREE.BoxGeometry(w+1.4,2,d+1.4),roof);cap.position.y=h+2.5;g.add(cap);
+const glass=mat(0x759cab,.26),rail=mat(0xe7ecea),stripe=mat(0xaba79e);
+for(let f=0;f<floors;f++){let y=3.1+f*3.05;for(let side of [-1,1]){for(let k=-2;k<=2;k++){let pane=new THREE.Mesh(new THREE.BoxGeometry(3.2,2.1,.12),glass);pane.position.set(k*(w-3)/5,y,side*(d/2+.1));g.add(pane)}let band=new THREE.Mesh(new THREE.BoxGeometry(w,.15,.22),rail);band.position.set(0,y-1.17,side*(d/2+.2));g.add(band)}
+for(let k=-4;k<=4;k++){let pane=new THREE.Mesh(new THREE.BoxGeometry(.12,2.05,4.6),glass);pane.position.set(w/2+.1,y,k*d/10);g.add(pane);pane=pane.clone();pane.position.x=-w/2-.1;g.add(pane)}
+}
+for(let side of [-1,1]){const accent=new THREE.Mesh(new THREE.BoxGeometry(1,h,.25),stripe);accent.position.set(side*(w/2-2),h/2+1.5,d/2+.3);g.add(accent)}
+const tag=document.createElement('div');tag.textContent=name;tag.style.cssText='position:absolute;transform:translate(-50%,-50%);background:#12539bde;color:white;border:1px solid #b7dfff;border-radius:5px;padding:4px 9px;font-weight:800;pointer-events:none';document.body.append(tag);labels.push({tag,position:new THREE.Vector3(x,h+11,z)});return g}
+const labels=[];
+tower('101',-103,-54,-.65,24,61,40,0xe9ded5);
+tower('102',-108,55,-.75,24,64,40,0xe1ddd6);
+tower('103',111,47,.68,24,65,40,0xe7dfd8);
+tower('201',104,-61,-.48,28,67,40,0xd9dcda);
+// low-rise facilities
+box(77,5,-23,57,10,21,mat(0xa7aaa6));box(77,10.5,-23,59,1,23,roof);
+box(-58,3,68,28,6,16,mat(0xd0c8b3));box(48,3,43,31,6,20,mat(0xd0c8b3));
+box(-143,.24,80,35,.18,27,play);box(61,.24,69,28,.18,25,play);
+for(const [x,z] of [[-150,75],[-137,85],[55,70],[67,61]]){disk(x,z,4,mat(0xd98664));box(x,1.8,z,2,3.5,2,mat(0x58a7a7))}
+for(let i=0;i<20;i++){const x=30+rnd()*60,z=5+rnd()*34;disk(x,z,2+rnd()*3,water)}
+// surrounding context blocks
+for(let i=0;i<25;i++){const x=(rnd()-.5)*720,z=(rnd()-.5)*720;if(Math.abs(x)<230&&Math.abs(z)<180)continue;box(x,8,z,22,16,30,mat(0x87958a))}
+let mode='aerial',yaw=0,pitch=-.72,dist=390,target=new THREE.Vector3(0,0,0),pos=new THREE.Vector3(0,2,135),tour=false,showLabels=true;
+function setMode(m){mode=m;tour=false;document.getElementById('aerial').classList.toggle('active',m==='aerial');document.getElementById('walk').classList.toggle('active',m==='walk');document.getElementById('cross').style.display=m==='walk'?'block':'none';if(m==='walk'){pos.set(0,1.75,95);yaw=Math.PI;pitch=0}else{yaw=0;pitch=-.72;dist=390;target.set(0,0,0)}}
+document.getElementById('aerial').onclick=()=>setMode('aerial');document.getElementById('walk').onclick=()=>setMode('walk');document.getElementById('reset').onclick=()=>setMode('aerial');document.getElementById('tour').onclick=()=>{tour=!tour;document.getElementById('tour').classList.toggle('active',tour);if(tour){mode='aerial';dist=300;pitch=-.34}};document.getElementById('labels').onclick=()=>{showLabels=!showLabels;document.getElementById('labels').classList.toggle('active',showLabels)};
+let down=false,lastX=0,lastY=0,pinch=0;
+renderer.domElement.addEventListener('pointerdown',e=>{down=true;lastX=e.clientX;lastY=e.clientY;renderer.domElement.setPointerCapture(e.pointerId)});
+renderer.domElement.addEventListener('pointerup',()=>down=false);renderer.domElement.addEventListener('pointermove',e=>{if(!down)return;const dx=e.clientX-lastX,dy=e.clientY-lastY;lastX=e.clientX;lastY=e.clientY;yaw-=dx*.005;pitch=THREE.MathUtils.clamp(pitch-dy*.004,mode==='walk'?-1.2:-1.52,mode==='walk'?1.2:-.1)});
+renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();if(mode==='aerial')dist=THREE.MathUtils.clamp(dist+e.deltaY*.2,45,700);else pos.addScaledVector(new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)), -e.deltaY*.04)},{passive:false});
+renderer.domElement.addEventListener('touchmove',e=>{if(e.touches.length===2){const a=e.touches[0],b=e.touches[1],p=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);if(pinch)dist=THREE.MathUtils.clamp(dist-(p-pinch)*.6,40,700);pinch=p}}, {passive:true});renderer.domElement.addEventListener('touchend',()=>pinch=0);
+const keys={};addEventListener('keydown',e=>keys[e.key.toLowerCase()]=true);addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+const joy=document.getElementById('joy'),knob=document.getElementById('knob');let jx=0,jy=0;function joystick(e){const r=joy.getBoundingClientRect(),t=e.touches?e.touches[0]:e;let x=(t.clientX-r.left-r.width/2)/38,y=(t.clientY-r.top-r.height/2)/38;const mag=Math.max(1,Math.hypot(x,y));jx=x/mag;jy=y/mag;knob.style.transform='translate('+jx*32+'px,'+jy*32+'px)'}joy.addEventListener('touchstart',e=>{e.preventDefault();joystick(e)},{passive:false});joy.addEventListener('touchmove',e=>{e.preventDefault();joystick(e)},{passive:false});joy.addEventListener('touchend',()=>{jx=jy=0;knob.style.transform=''});
+let last=performance.now();function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-last)/1000,.05);last=now;if(tour){yaw+=dt*.12;target.set(0,0,0)}
+if(mode==='aerial'){camera.position.set(target.x+Math.sin(yaw)*Math.cos(pitch)*dist,target.y-Math.sin(pitch)*dist,target.z+Math.cos(yaw)*Math.cos(pitch)*dist);camera.lookAt(target)}
+else{const forward=(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0)-jy,side=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+jx;const speed=(keys.shift?30:13)*dt;pos.x+=(-Math.sin(yaw)*forward+Math.cos(yaw)*side)*speed;pos.z+=(-Math.cos(yaw)*forward-Math.sin(yaw)*side)*speed;pos.x=THREE.MathUtils.clamp(pos.x,-240,240);pos.z=THREE.MathUtils.clamp(pos.z,-180,180);camera.position.copy(pos);camera.lookAt(pos.x-Math.sin(yaw)*Math.cos(pitch),pos.y+Math.sin(pitch),pos.z-Math.cos(yaw)*Math.cos(pitch))}
+for(const l of labels){l.tag.style.display=showLabels?'block':'none';if(!showLabels)continue;const p=l.position.clone().project(camera);const visible=p.z<1&&p.z>-1;l.tag.style.display=visible?'block':'none';l.tag.style.left=(p.x*.5+.5)*innerWidth+'px';l.tag.style.top=(-p.y*.5+.5)*innerHeight+'px'}renderer.render(scene,camera)}
+setMode('aerial');requestAnimationFrame(animate);addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+</script></body></html>
